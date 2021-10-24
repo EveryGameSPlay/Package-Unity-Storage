@@ -10,32 +10,42 @@ namespace Egsp.Core
  {
      // todo: Создать пакет с сериализатором от Sirenix (Odin Serializer).
      
-     /// <summary>
-     /// <para>Через данный класс осуществляется доступ к данным вне приложения.
-     /// Учитывает платформу и инструментарий.</para>
-     /// <para>Корневая папка на разных устройствах отличается.</para>
-     /// <para>
-     /// Mobile - Application.persistentDataPath/Storage/;
-     /// PC - Application.dataPath/Storage/
-     /// </para>
-     /// </summary>
      public partial class Storage : SingletonRaw<Storage>
      {
-         private string _defaultRootPath;
-         private ISerializer _defaultSerialzier;
+         // Профиль и идентификатор это одно и то же. Просто профиль звучит удобнее для понимания.
          
-         private static List<StorageId> _profiles;
+         // STATIC
+         // properties
+         // settings
+         public static string Path => Instance._baseRootPath;
 
-         // todo: Добавить используемый путь как вариант возвращаемого значения.
-         public static string RootPath { get; private set; } = _defaultRootPath;
-
-         [NotNull]
-         public static StorageData Common { get; private set; }
-         
-         [NotNull]
-         public static StorageData Current { get; set; }
-
+         // objects
          private static ILogger Logger => Debug.unityLogger;
+         public static ISerializer Serializer => Instance._defaultSerializer;
+
+         // todo: добавить проверку на наличие пространств.
+         // spaces
+         public static StorageSpace General => Instance._generalSpace;
+         public static StorageSpace Specified => Instance._specifiedSpace;
+         
+         // profiles
+         public static IReadOnlyCollection<StorageId> Profiles => Instance._profiles;
+
+         // INSTANCE
+         // settings
+         private string _baseRootPath;
+         
+         // serializing
+         private ISerializer _defaultSerializer;
+         
+         // profiles
+         private List<StorageId> _profiles;
+         private Option<StorageId> _generalProfile;
+         private Option<StorageId> _specifiedProfile;
+         
+         // spaces
+         private Option<StorageSpace> _generalSpace;
+         private Option<StorageSpace> _specifiedSpace;
 
          [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
          private static void InitializeSingleton()
@@ -57,7 +67,7 @@ namespace Egsp.Core
 
          private void SetupRootFolderPath()
          {
-             _defaultRootPath = Application.platform switch
+             _baseRootPath = Application.platform switch
              {
                  RuntimePlatform.Android => Application.persistentDataPath,
                  RuntimePlatform.OSXPlayer => Application.persistentDataPath,
@@ -93,11 +103,11 @@ namespace Egsp.Core
          private static void LoadProfiles()
          {
              var commonProfile = new StorageId(CommonProviderName);
-             var commonProvider = new StorageData(commonProfile, _defaultRootPath, _defaultSerializer, DefaultExtension);
+             var commonProvider = new StorageSpace(commonProfile, _baseRootPath, _defaultSerializer, DefaultExtension);
 
-             Common = commonProvider;
+             General = commonProvider;
 
-             var profiles = Common.GetObjects<StorageId>("Profiles/profiles");
+             var profiles = General.GetObjects<StorageId>("Profiles/profiles");
 
              if (profiles.IsSome)
              {
@@ -106,12 +116,12 @@ namespace Egsp.Core
                  if (list.Count == 0)
                  {
                      _profiles = list;
-                     Current = Common;
+                     Specified = General;
                  }
                  else
                  {
                      var localProfile = _profiles[0];
-                     Current = new StorageData(localProfile, _defaultRootPath, _defaultSerializer, DefaultExtension);
+                     Specified = new StorageSpace(localProfile, _baseRootPath, _defaultSerializer, DefaultExtension);
                  }
              }
              else
@@ -123,23 +133,14 @@ namespace Egsp.Core
              if (!profiles.IsSome || profiles.option.Count == 0)
              {
                  _profiles = profiles.option;
-                 Current = Common;
+                 Specified = General;
              }
              else
              {
                  _profiles = profiles.option;
                  var localProfile = _profiles[0];
-                 Current = new StorageData(localProfile, _defaultRootPath, _defaultSerializer, DefaultExtension);
+                 Specified = new StorageSpace(localProfile, _baseRootPath, _defaultSerializer, DefaultExtension);
              }
-         }
-
-         /// <summary>
-         /// Получение всех существующих профилей.
-         /// Возвращается копия списка. Однако элементы списка НЕ копии!
-         /// </summary>
-         public static List<StorageId> GetProfiles()
-         {
-             return _profiles.ToList();
          }
 
          /// <summary>
@@ -149,9 +150,9 @@ namespace Egsp.Core
          public static void SwitchCurrentProfile(StorageId profile)
          {
              if(!_profiles.Contains(profile))
-                 throw new Exception($"Profile {profile.Id} not exist in current list of profiles!");
+                 throw new Exception($"Profile {profile.Value} not exist in current list of profiles!");
              
-             Current = new StorageData(profile, _defaultRootPath, new UnitySerializer(), DefaultExtension);
+             Specified = new StorageSpace(profile, _baseRootPath, new UnitySerializer(), DefaultExtension);
          }
 
      }

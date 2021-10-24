@@ -2,61 +2,19 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Egsp.Core;
 
 namespace Egsp.Core
 {
-    /// <summary>
-    /// Предоставляет методы для доступа к данным в определенном профиле.
-    /// </summary>
-    public class StorageData
+    public partial class StorageSpace
     {
-        /// <summary>
-        /// Используемый профиль.
-        /// </summary>
-        public readonly StorageId ProfileId;
-
-        /// <summary>
-        /// Корневая папка, куда сохраняются все файлы.
-        /// </summary>
-        public readonly string RootFolder;
-        
-        /// <summary>
-        /// Расширения сохраняемых файлов.
-        /// </summary>
-        public readonly string Extension;
-        
-        /// <summary>
-        /// Сериализатор, используемый провайдером.
-        /// </summary>
-        public ISerializer Serializer { get; set; }
-
-        public StorageData(StorageId profileId, string rootFolder, string extension = ".txt")
-        {
-            ProfileId = profileId;
-            
-            if(StorageId.ValidateProfile(profileId)==false)
-                throw new InvalidDataException();
-
-            RootFolder = rootFolder + "/" + profileId.Id+"/";
-            Extension = extension;
-            
-            Serializer = new UnitySerializer();
-        }
-        
-        public StorageData(StorageId profileId, string rootFolder, ISerializer serializer, string extension = ".txt")
-            : this(profileId, rootFolder, extension)
-        {
-            Serializer = serializer;
-        }
-        
+          
         /// <summary>
         /// Возвращает прокси для файла со свойствами.
         /// При отсутствии файла создает новый, если createDefault == true.
         /// </summary>
         public PropertyFileProxy GetPropertiesFromFile(string filePath, bool createDefault = true)
         {
-            var path = RootFolder + filePath + Extension;
+            var path = Path.Combine(PathToSpace, ApplyExtension(filePath, StorageDefines.DefaultExtension));
             Directory.CreateDirectory(Path.GetDirectoryName(path) ?? throw new InvalidOperationException());
 
             if (File.Exists(path))
@@ -190,16 +148,6 @@ namespace Egsp.Core
             }
 
             return linkedList;
-        }
-
-        public string CombineFilePath(string file)
-        {
-            return RootFolder + file + Extension;
-        }
-
-        public string CombineDirectoryPath(string directory)
-        {
-            return RootFolder + directory;
         }
     }
 }

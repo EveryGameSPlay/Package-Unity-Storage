@@ -5,16 +5,23 @@ namespace Egsp.Core
     [Serializable]
     public readonly struct StorageId
     {
-        public readonly string Id;
+        // Использует нижний регистр всегда.
+        public readonly string Value;
         
         public StorageId(Option<string> id)
         {
             if (!id)
             {
-                Id = StorageDefines.DefaultStorageId;
+                Value = StorageDefines.GeneralStorageId;
                 return;
             }
-            Id = id;
+
+            Value = id.option.ToLower();
+        }
+
+        public static implicit operator string(StorageId id)
+        {
+            return id.Value;
         }
     }
 }

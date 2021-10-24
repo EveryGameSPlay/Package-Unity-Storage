@@ -7,8 +7,8 @@
             if (!serializer)
                 return;
             
-            Common.Serializer = serializer.option;
-            Current.Serializer = serializer.option;
+            General.Serializer = serializer.option;
+            Specified.Serializer = serializer.option;
         }
     }
 }
